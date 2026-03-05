@@ -6,7 +6,7 @@ from typing import Any
 
 load_dotenv()
 
-MODEL_NAME = 'gemini-2.5-flash-lite'
+MODEL_NAME = 'gemini-3.1-flash-lite-preview'
 
 API_KEY = os.getenv('GEMINI_API_KEY')
 if not API_KEY:

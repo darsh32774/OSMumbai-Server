@@ -1,8 +1,0 @@
-services:
-- type: web
-  name: mumbai-osm-backend
-  env: docker
-  dockerfilePath: Dockerfile
-  healthCheckPath: /
-  plan: free
-  

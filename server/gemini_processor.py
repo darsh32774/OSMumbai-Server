@@ -6,7 +6,10 @@ from typing import Any
 
 load_dotenv()
 
-MODEL_NAME = 'gemini-3.1-flash-lite-preview'
+# Model used when the user selects "Accuracy" (default)
+MODEL_ACCURACY = 'gemini-3.1-flash-lite-preview'
+# Model used when the user selects "Speed"
+MODEL_SPEED = 'gemini-2.5-flash'
 
 API_KEY = os.getenv('GEMINI_API_KEY')
 if not API_KEY:
@@ -46,9 +49,9 @@ VERY IMPORTANT:
 Use AreaCandidate and SelectedArea ONLY WHEN the name of a locality or a city is mentioned. For other things like names of buildings, do not use AreaCandidate and SelectedArea. And a particular building or a name of any place can be a point or a polygon so always search in both tables.
 
 FOR "WHERE IS" type of queries:
- -DO NOT USE AreaCandidate and SelectedArea. 
+ -DO NOT USE AreaCandidate and SelectedArea.
  -ALWAYS SEARCH IN planet_osm_point AND planet_osm_polygon BOTH.
- -Use fuzzy searching.
+ -Use fuzzy searching with 0.7 match.
  -Do not abbreviate or lengthen the names that user asks for.You are an NL to SQL converting agent. The user will ask queries based on openstreetmap data, you are supposed to form an sql query to get the requested data from the database.
 User might ask queries like "cafes in bandra", you are supposed to use the bandra area polygon and search for cafes inside it. You search for the cafe or any other thing that user might ask for using key, value pairs. For example, amenity=cafe, leisure=garden. The database is entirely osm data, so use only verified key value pairs. Return only SQL, no explanations or comments, just pure sql.
 Always put a LIMIT of 50 on every search query.
@@ -73,39 +76,51 @@ VERY IMPORTANT:
 Use AreaCandidate and SelectedArea ONLY WHEN the name of a locality or a city is mentioned. For other things like names of buildings, do not use AreaCandidate and SelectedArea. And a particular building or a name of any place can be a point or a polygon so always search in both tables.
 
 FOR "WHERE IS" type of queries:
- -DO NOT USE AreaCandidate and SelectedArea. 
+ -DO NOT USE AreaCandidate and SelectedArea.
  -ALWAYS SEARCH IN planet_osm_point AND planet_osm_polygon BOTH.
  -Use fuzzy searching.
  -Do not abbreviate or lengthen the names that user asks for.
 """
 
 
-def initialize_sql_chat(client: genai.Client):
+def resolve_model(mode: str) -> str:
+    """Maps frontend mode string to the correct Gemini model name."""
+    return MODEL_SPEED if mode == 'speed' else MODEL_ACCURACY
+
+
+def initialize_sql_chat(client: genai.Client, mode: str = 'accuracy'):
+    """
+    Creates a Gemini chat session for the given mode.
+    mode='accuracy' (default) → gemini-pro-latest
+    mode='speed'              → gemini-3.1-flash-lite-preview
+    """
+    model_name = resolve_model(mode)
     try:
         chat_session = client.chats.create(
-            model=MODEL_NAME,
+            model=model_name,
             config=genai.types.GenerateContentConfig(
                 system_instruction=SYSTEM_INSTRUCTION
             )
         )
         return chat_session
     except Exception as e:
-        raise RuntimeError(f"Failed to initialize Gemini Chat Session: {e}")
+        raise RuntimeError(f"Failed to initialize Gemini Chat Session ({model_name}): {e}")
+
 
 def generate_sql_query_from_chat(chat_session: Any, natural_language_query: str) -> str:
     user_prompt = f"User Query: {natural_language_query}"
-    
+
     try:
         response = chat_session.send_message(user_prompt)
         sql_query = response.text.strip()
-        
+
         sql_query = re.sub(r'^```sql\s*', '', sql_query, flags=re.MULTILINE)
         sql_query = re.sub(r'\s*```$', '', sql_query, flags=re.MULTILINE)
         sql_query = sql_query.split(';')[0].strip()
-        
+
         if not sql_query.upper().startswith(("SELECT", "WITH")):
-            raise ValueError(f"Gemini returned an invalid SQL start keyword: {sql_query[:50]}...")
-            
+            raise ValueError(f"Gemini returned an invalid SQL start: {sql_query[:50]}...")
+
         return sql_query
     except Exception as e:
-        raise RuntimeError(f"Error generating SQL query for '{natural_language_query}': {e}")
+        raise RuntimeError(f"Error generating SQL for '{natural_language_query}': {e}")

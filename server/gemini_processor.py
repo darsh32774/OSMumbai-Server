@@ -53,6 +53,8 @@ FOR "WHERE IS" type of queries:
  -ALWAYS SEARCH IN planet_osm_point AND planet_osm_polygon BOTH.
  -Use fuzzy searching with 0.7 match.
  -Do not abbreviate or lengthen the names that user asks for.
+
+BEFORE YOU REPLY, RECHECK YOUR WORK AND VERIFY IF THE SQL IS LEGAL AND VALID. Check for any errors before replying.
 """
 
 

@@ -9,7 +9,7 @@ load_dotenv()
 # Model used when the user selects "Accuracy" (default)
 MODEL_ACCURACY = 'gemini-3.1-flash-lite-preview'
 # Model used when the user selects "Speed"
-MODEL_SPEED = 'gemini-2.5-flash'
+MODEL_SPEED = 'gemini-2.5-flash-lite'
 
 API_KEY = os.getenv('GEMINI_API_KEY')
 if not API_KEY:
